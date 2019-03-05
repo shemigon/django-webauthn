@@ -1,3 +1,6 @@
 env
 *.sqlite3
 __pycache__
+.coverage
+.tox
+*.egg-info
