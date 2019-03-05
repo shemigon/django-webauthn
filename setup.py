@@ -21,6 +21,7 @@ setup(
     version='0.0.1',
     description="Django support for Web Authn.",
     long_description=read('README.md'),
+    long_description_content_type="text/markdown",
     keywords='django environment variables 12factor',
     author='Boris Shemigon',
     author_email='i@boris.co',

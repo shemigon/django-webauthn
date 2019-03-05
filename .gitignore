@@ -3,4 +3,7 @@ env
 __pycache__
 .coverage
 .tox
+
 *.egg-info
+build
+dist
