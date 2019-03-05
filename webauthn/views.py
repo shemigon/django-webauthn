@@ -1,13 +1,13 @@
 import base64
 import json
 
-from botocore import xform_name
 from django.http import JsonResponse
 from django.utils.functional import cached_property
 from django.views import View
 
 from pywarp import RelyingPartyManager
 from .backends import SessionBackend
+from .utils import xform_name
 
 
 class BaseView(View):
