@@ -8,17 +8,16 @@ import os
 
 from setuptools import find_packages, setup
 
-PACKAGE = 'webauthn'
 
 def read(*parts):
     filename = os.path.join(os.path.dirname(__file__), *parts)
     with codecs.open(filename, encoding='utf-8') as fp:
-        return fp.read()
+        return fp.read().strip()
 
 
 setup(
     name='django-webauthn',
-    version='0.0.2',
+    version=read('VERSION'),
     description="Django support for Web Authn.",
     long_description=read('README.md'),
     long_description_content_type="text/markdown",
@@ -31,11 +30,9 @@ setup(
     platforms=["any"],
     include_package_data=True,
     zip_safe=False,
-    install_requires = [
+    install_requires=[
         'django-appconf >= 1.0',
-    ],
-    dependency_links=[
-        'http://github.com/shemigon/pywarp/tarball/master#egg=pywarp'
+        'pywarp @ http://github.com/shemigon/pywarp/tarball/master',
     ],
     classifiers=[
         # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
