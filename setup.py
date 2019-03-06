@@ -32,7 +32,8 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires = [
-        'pywarp'
+        'pywarp',
+        'django-appconf >= 1.0',
     ],
     classifiers=[
         # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
