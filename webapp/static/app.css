@@ -1,0 +1,7 @@
+#result {
+  margin-top: .6rem;
+}
+
+#result.error {
+  color: red;
+}
