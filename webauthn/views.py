@@ -1,54 +1,88 @@
-import base64
 import json
 
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.utils.functional import cached_property
+from django.utils.module_loading import import_string
 from django.views import View
 
 from pywarp import RelyingPartyManager
-from .backends import SessionBackend
-from .utils import xform_name
+from .conf import settings
+from .forms import CreateOptionsForm, RegistrationForm, VerifyForm
 
 
 class BaseView(View):
     @cached_property
     def rp(self):
-        request = self.request
+        backend = import_string(settings.WEBAUTHN_BACKEND)()
+
         return RelyingPartyManager(
-            "PyWARP demo",
-            rp_id=request.META['HTTP_HOST'].split(':')[0],
-            credential_storage_backend=SessionBackend(request),
+            settings.WEBAUTHN_NAME,
+            rp_id=settings.WEBAUTHN_HOSTNAME,
+            credential_storage_backend=backend,
             debug=True,
         )
 
 
 class CredentialCreateOptionsView(BaseView):
     def post(self, request):
+        form = CreateOptionsForm(json.loads(request.body))
+        if not form.is_valid():
+            return JsonResponse({
+                'errors': form.errors.as_json(),
+            })
         rp = self.rp
-        reg_options = rp.get_registration_options(**json.loads(request.body))
+        data = form.cleaned_data
+        try:
+            reg_options = rp.get_registration_options(
+                username=data['username'],
+                full_name=data.get('full_name', None),
+            )
+        except IntegrityError:
+            return JsonResponse({
+                'errors': 'User "%s" already exists.' % data['username']
+            })
         return JsonResponse(reg_options)
 
 
 class RegisterCredentialView(BaseView):
     def post(self, request):
+        form = RegistrationForm(json.loads(request.body))
+        if not form.is_valid():
+            return JsonResponse({
+                'errors': form.errors.as_json()
+            })
         rp = self.rp
-        req = {xform_name(k): base64.b64decode(v)
-               for k, v in json.loads(request.body).items()}
-        resp = rp.register(**req)
+        data = form.cleaned_data
+        resp = rp.register(
+            client_data_json=data.pop('client_data_json'),
+            attestation_object=data.pop('attestation_object'),
+            username=data.pop('username'),
+            **data
+        )
         return JsonResponse(resp)
 
 
 class CredentialGetOptionsView(BaseView):
     def post(self, request):
+        form = CreateOptionsForm(json.loads(request.body))
+        if not form.is_valid():
+            return JsonResponse({
+                'errors': form.errors.as_json()
+            })
         rp = self.rp
-        data = rp.get_authentication_options(**json.loads(request.body))
+        data = rp.get_authentication_options(
+            username=form.cleaned_data['username'],
+        )
         return JsonResponse(data)
 
 
 class VerifyAssertionView(BaseView):
     def post(self, request):
-        rp = self.rp
-        req = {xform_name(k): base64.b64decode(v)
-               for k, v in json.loads(request.body).items()}
-        res = rp.verify(**req)
+        form = VerifyForm(json.loads(request.body))
+        if not form.is_valid():
+            return JsonResponse({
+                'errors': form.errors.as_json()
+            })
+        res = self.rp.verify(**form.cleaned_data)
         return JsonResponse(res)
