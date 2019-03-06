@@ -18,7 +18,7 @@ def read(*parts):
 
 setup(
     name='django-webauthn',
-    version='0.0.1',
+    version='0.0.2',
     description="Django support for Web Authn.",
     long_description=read('README.md'),
     long_description_content_type="text/markdown",
@@ -32,8 +32,10 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires = [
-        'pywarp',
         'django-appconf >= 1.0',
+    ],
+    dependency_links=[
+        'http://github.com/shemigon/pywarp/tarball/master#egg=pywarp'
     ],
     classifiers=[
         # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
