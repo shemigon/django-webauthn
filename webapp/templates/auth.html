@@ -9,7 +9,7 @@
   <script src="{% static "app.js" %}"></script>
   <link rel="stylesheet" href="{% static "app.css" %}">
 
-  {% webauthn_js "form [name=email]" "#signup" "#login" %}
+  {% webauthn_js "form [name=username]" "#signup" "#login" %}
 
 </head>
 <body>
@@ -17,8 +17,8 @@
   <a href="https://github.com/shemigon/django-webauthn" target="_blank">django-webauthn</a> demo
 </h1>
 <form name="webauthn_input" onsubmit="event.preventDefault()">
-  <label>Email:
-    <input type="email" name="email" autocomplete="on">
+  <label>Username:
+    <input type="text" name="username" autocomplete="on">
   </label>
   <button id="signup">Create account</button>
   <button id="login">Log in</button>

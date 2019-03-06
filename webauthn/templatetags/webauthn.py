@@ -6,14 +6,14 @@ register = template.Library()
 
 
 @register.simple_tag
-def webauthn_js(email_input, signup_ctrl, login_ctrl):
+def webauthn_js(username_input, signup_ctrl, login_ctrl):
     code = '''<script> // django-webauthn initialization script
     window.initWebAuthnHandlers({
       credentialsCreate: "%(create)s",
       credentialsRegister: "%(register)s",
       credentialsGet: "%(get)s",
       verify: "%(verify)s",
-      emailInputSel: "%(email)s",
+      usernameInputSel: "%(user)s",
       signupSel: "%(signup)s",
       loginSel: "%(login)s",
     });
@@ -23,7 +23,7 @@ def webauthn_js(email_input, signup_ctrl, login_ctrl):
         'get': reverse('webauthn:credentials-get'),
         'verify': reverse('webauthn:verify'),
 
-        'email': email_input,
+        'user': username_input,
         'signup': signup_ctrl,
         'login': login_ctrl,
     }

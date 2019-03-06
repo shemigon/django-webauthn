@@ -1,7 +1,7 @@
 window.initWebAuthnHandlers = function (
   {
     credentialsCreate, credentialsRegister, credentialsGet, verify,
-    emailInputSel, signupSel, loginSel
+    usernameInputSel, signupSel, loginSel
   }
 ) {
   const urls = {
@@ -56,78 +56,75 @@ window.initWebAuthnHandlers = function (
     });
   }
 
-  function getEmail() {
-    const emailElems = document.querySelectorAll(emailInputSel);
-    if (emailElems.length > 1) {
+  function getUsername() {
+    const userElems = document.querySelectorAll(usernameInputSel);
+    if (userElems.length > 1) {
       console.warn(
-        `Found ${emailElems.length} email inputs for "${emailInputSel}". Will use the first one.`
+        `Found ${userElems.length} username inputs for "${usernameInputSel}". Will use the first one.`
       );
-    } else if (!emailElems.length) {
-      throw `No elements found by "${emailInputSel}."`
+    } else if (!userElems.length) {
+      throw `No elements found by "${usernameInputSel}."`
     }
-    return emailElems[0].value.trim();
-  }
-
-  function emailIsValid(email) {
-    return /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(email);
+    return userElems[0].value.trim();
   }
 
   function createCredentials() {
     // See https://www.w3.org/TR/webauthn/#registering-a-new-credential
-    const email = getEmail();
-    if (!email) {
-      return error('Email cannot be blank.');
-    }
-    if (!emailIsValid(email)) {
-      return error(`Email ${email} is not valid.`);
-    }
     message();
-    fetch(JSONRequest(urls.credentialsCreate, {email}))
+    const username = getUsername();
+    if (!username) {
+      return error('Username cannot be blank.');
+    }
+    fetch(JSONRequest(urls.credentialsCreate, {username: username}))
       .then(function (res) {
         return res.json()
-      }).then(function (options) {
-      options.challenge = base64ToArrayBuffer(options.challenge);
-      options.user.id = new TextEncoder().encode(options.user.name);
-      console.log("Credential create options:");
-      console.dir(options);
-      navigator.credentials.create({publicKey: options}).then(function (newCredentialInfo) {
-        console.log("Created credential:");
-        console.dir(newCredentialInfo);
-        // Send new credential info to server for verification and registration
-        const dataForServer = {};
-        ["attestationObject", "clientDataJSON"].map(f => {
-          dataForServer[f] = arrayBufferToBase64(newCredentialInfo.response[f]);
+      })
+      .then(function (options) {
+        if (options.errors) {
+          return error(options.errors);
+        }
+        options.challenge = base64ToArrayBuffer(options.challenge);
+        options.user.id = new TextEncoder().encode(options.user.name);
+        console.log("Credential create options:");
+        console.dir(options);
+        navigator.credentials.create({publicKey: options})
+          .then(function (newCredentialInfo) {
+            console.log("Created credential:");
+            console.dir(newCredentialInfo);
+            // Send new credential info to server for verification and registration
+            const dataForServer = {
+              attestation_object: arrayBufferToBase64(newCredentialInfo.response.attestationObject),
+              client_data_json: arrayBufferToBase64(newCredentialInfo.response.clientDataJSON),
+            };
+            dataForServer.username = btoa(username);
+            fetch(JSONRequest(urls.credentialsRegister, dataForServer))
+              .then(function (res) {
+                console.log("Response from credentialsRegister:");
+                console.dir(res);
+                return res.blob();
+              })
+              .then(function (body) {
+                const reader = new FileReader();
+                reader.onload = function () {
+                  message(reader.result);
+                };
+                reader.readAsText(body);
+              });
+          }).catch(function (err) {
+          console.log("Error in navigator.credentials.create: " + err);
+          console.dir(err); // No acceptable authenticator or user refused consent
         });
-        dataForServer.email = btoa(email);
-        fetch(JSONRequest(urls.credentialsRegister, dataForServer)).then(function (res) {
-          console.log("Response from registerCredential:");
-          console.dir(res);
-          return res.blob();
-        }).then(function (body) {
-          const reader = new FileReader();
-          reader.onload = function () {
-            message(reader.result);
-          };
-          reader.readAsText(body);
-        });
-      }).catch(function (err) {
-        console.log("Error in navigator.credentials.create: " + err);
-        console.dir(err); // No acceptable authenticator or user refused consent
       });
-    });
   }
 
   function login() {
     // See https://www.w3.org/TR/webauthn/#verifying-assertion
-    const email = getEmail();
-    if (!email) {
-      return error('Email cannot be blank.');
-    }
-    if (!emailIsValid(email)) {
-      return error(`Email ${email} is not valid.`);
-    }
     message();
-    fetch(JSONRequest(urls.credentialsGet, {email}))
+    const username = getUsername();
+    if (!username) {
+      return error('Username cannot be blank.');
+    }
+    fetch(JSONRequest(urls.credentialsGet, {username}))
       .then(function (res) {
         return res.json()
       }).then(function (options) {
@@ -141,11 +138,14 @@ window.initWebAuthnHandlers = function (
         // Send assertion to server for verification
         console.log("Got assertion:");
         console.dir(assertion);
-        const dataForServer = {};
-        ["authenticatorData", "clientDataJSON", "signature", "userHandle", "rawId"].map(f => {
-          dataForServer[f] = arrayBufferToBase64(assertion.response[f]);
-        });
-        dataForServer.email = btoa(email);
+        const dataForServer = {
+          username: btoa(username),
+          authenticator_data: arrayBufferToBase64(assertion.response.authenticatorData),
+          client_data_json: arrayBufferToBase64(assertion.response.clientDataJSON),
+          signature: arrayBufferToBase64(assertion.response.signature),
+          user_handle: arrayBufferToBase64(assertion.response.userHandle),
+          raw_id: arrayBufferToBase64(assertion.response.rawId),
+        };
         fetch(JSONRequest(urls.verify, dataForServer)).then(function (res) {
           console.log("Response from verifyAssertion:");
           console.dir(res);
