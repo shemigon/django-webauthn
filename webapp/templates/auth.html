@@ -1,4 +1,6 @@
 {% load static %}
+{% load webauthn %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,14 +8,9 @@
   <title>WebAuthn demo</title>
   <script src="{% static "app.js" %}"></script>
   <link rel="stylesheet" href="{% static "app.css" %}">
-  <script>
-    window.webAuthnApp = new WebAuthnApp({
-      credentialsCreate: "{% url "webauthn:credentials-create" %}",
-      credentialsRegister: "{% url "webauthn:credentials-register" %}",
-      credentialsGet: "{% url "webauthn:credentials-get" %}",
-      verify: "{% url "webauthn:verify" %}",
-    });
-  </script>
+
+  {% webauthn_js "form [name=email]" "#signup" "#login" %}
+
 </head>
 <body>
 <h1>
@@ -23,8 +20,8 @@
   <label>Email:
     <input type="email" name="email" autocomplete="on">
   </label>
-  <button onclick="webAuthnApp.createCredentials()">Create account</button>
-  <button onclick="webAuthnApp.login()">Log in</button>
+  <button id="signup">Create account</button>
+  <button id="login">Log in</button>
 </form>
 <div id="result"></div>
 </body>

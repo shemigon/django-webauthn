@@ -1,19 +1,39 @@
-window.WebAuthnApp = function ({credentialsCreate, credentialsRegister, credentialsGet, verify}) {
-  let urls = {
+window.initWebAuthnHandlers = function (
+  {
+    credentialsCreate, credentialsRegister, credentialsGet, verify,
+    emailInputSel, signupSel, loginSel
+  }
+) {
+  const urls = {
     credentialsCreate: credentialsCreate,
     credentialsRegister: credentialsRegister,
     credentialsGet: credentialsGet,
     verify: verify,
   };
 
-  function message(msg, clear = true, style) {
+  document.addEventListener("DOMContentLoaded", function () {
+    Object.entries({
+      [signupSel]: createCredentials,
+      [loginSel]: login
+    }).forEach(function ([sel, fn]) {
+      const elems = document.querySelectorAll(sel);
+      if (!elems.length) {
+        throw `No elements found by "${sel}"`;
+      }
+      elems.forEach(function (el) {
+        el.addEventListener('click', fn);
+      });
+    });
+  });
+
+  function message(msg = '', clear = true, style = '') {
     let el = document.getElementById("result");
     if (clear) {
       el.innerHTML = msg;
     } else {
       el.innerHTML += "\n" + msg;
     }
-    el.className = style || "";
+    el.className = style;
   }
 
   function error(msg) {
@@ -36,13 +56,32 @@ window.WebAuthnApp = function ({credentialsCreate, credentialsRegister, credenti
     });
   }
 
-  this.createCredentials = function () {
-    // See https://www.w3.org/TR/webauthn/#registering-a-new-credential
-    const email = document.webauthn_input.email.value;
-    let that = this;
-    if (!email.trim()) {
-      return error('Email cannot be blank!');
+  function getEmail() {
+    const emailElems = document.querySelectorAll(emailInputSel);
+    if (emailElems.length > 1) {
+      console.warn(
+        `Found ${emailElems.length} email inputs for "${emailInputSel}". Will use the first one.`
+      );
+    } else if (!emailElems.length) {
+      throw `No elements found by "${emailInputSel}."`
     }
+    return emailElems[0].value.trim();
+  }
+
+  function emailIsValid(email) {
+    return /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/.test(email);
+  }
+
+  function createCredentials() {
+    // See https://www.w3.org/TR/webauthn/#registering-a-new-credential
+    const email = getEmail();
+    if (!email) {
+      return error('Email cannot be blank.');
+    }
+    if (!emailIsValid(email)) {
+      return error(`Email ${email} is not valid.`);
+    }
+    message();
     fetch(JSONRequest(urls.credentialsCreate, {email}))
       .then(function (res) {
         return res.json()
@@ -76,15 +115,18 @@ window.WebAuthnApp = function ({credentialsCreate, credentialsRegister, credenti
         console.dir(err); // No acceptable authenticator or user refused consent
       });
     });
-  };
+  }
 
-  this.login = function () {
+  function login() {
     // See https://www.w3.org/TR/webauthn/#verifying-assertion
-    const email = document.webauthn_input.email.value;
-    let that = this;
-    if (!email.trim()) {
-      return error('Email cannot be blank!');
+    const email = getEmail();
+    if (!email) {
+      return error('Email cannot be blank.');
     }
+    if (!emailIsValid(email)) {
+      return error(`Email ${email} is not valid.`);
+    }
+    message();
     fetch(JSONRequest(urls.credentialsGet, {email}))
       .then(function (res) {
         return res.json()
@@ -120,6 +162,5 @@ window.WebAuthnApp = function ({credentialsCreate, credentialsRegister, credenti
         console.dir(err); // No acceptable credential or user refused consent
       });
     });
-
   }
 };
