@@ -3,7 +3,7 @@ fulltest: flake8 runtests coveragereport
 test: flake8 baretests
 
 flake8:
-	flake8 webauthn
+	flake8 webauthn --exclude migrations
 
 runtests:
 	coverage run --branch --source=webauthn `which django-admin.py` test --settings=webauthn.test_settings webauthn
