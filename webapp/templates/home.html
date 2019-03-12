@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% load static %}
+{% load webauthn %}
+
+{% block title %}Home{% endblock %}
+
+{% block ext_header %}
+  <script src="{% static "webauthn/webauthn.js" %}"></script>
+
+  {% webauthn_login_js "#login-form [name=username]" %}
+  {% webauthn_signup_js "#signup-form [name=username]" %}
+
+  <script>
+    window.webauthn.params.loginSuccess = function () {
+      location.href = '{% url "logged-in" %}';
+    };
+
+    window.webauthn.params.signupSuccess = function () {
+      location.href = '{% url "signed-up" %}';
+    };
+  </script>
+{% endblock %}
+
+{% block content %}
+  <h1>
+    <a href="https://github.com/shemigon/django-webauthn" target="_blank">django-webauthn</a> demo
+  </h1>
+
+  <div>
+    <h1>Login</h1>
+    <form id="login-form">
+      <label>Username:
+        <input type="text" name="username" required="required">
+      </label>
+      <button type="submit">Log in</button>
+    </form>
+  </div>
+
+  <div>
+    <h2>Signup</h2>
+    <form id="signup-form">
+      <label>Username:
+        <input type="text" name="username" required="required">
+      </label>
+      <button type="submit">Signup</button>
+    </form>
+  </div>
+{% endblock %}
