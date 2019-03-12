@@ -9,20 +9,26 @@
   <script src="{% static "app.js" %}"></script>
   <link rel="stylesheet" href="{% static "app.css" %}">
 
-  {% webauthn_js "form [name=username]" "#signup" "#login" %}
+  {% webauthn_login_js "#login-form [name=username]" %}
 
 </head>
 <body>
+
 <h1>
   <a href="https://github.com/shemigon/django-webauthn" target="_blank">django-webauthn</a> demo
 </h1>
-<form name="webauthn_input" onsubmit="event.preventDefault()">
-  <label>Username:
-    <input type="text" name="username" autocomplete="on">
-  </label>
-  <button id="signup">Create account</button>
-  <button id="login">Log in</button>
-</form>
+
+<div>
+  <h1>Login</h1>
+  <form id="login-form">
+    <label>Username:
+      <input type="text" name="username" required="required">
+    </label>
+    <button type="submit">Log in</button>
+  </form>
+</div>
+
 <div id="result"></div>
+
 </body>
 </html>
