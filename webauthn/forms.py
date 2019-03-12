@@ -1,24 +1,23 @@
-import base64
-
 from django import forms
 from django.contrib.auth import get_user_model
 
-from webauthn.errors import ErrorCodes
-
-
-class Base64Field(forms.CharField):
-
-    def prepare_value(self, value):
-        if value is not None:
-            return base64.b64encode(value)
-
-    def to_python(self, value):
-        if value is not None:
-            return base64.b64decode(value)
+from .errors import ErrorCodes
+from .fields import Base64Field
 
 
 class CreateOptionsForm(forms.Form):
     username = forms.CharField()
+
+    def clean_username(self):
+        value = self.cleaned_data['username']
+        user_model = get_user_model()
+        try:
+            user_model.objects.get_by_natural_key(value)
+            raise forms.ValidationError('User already exist.',
+                                        ErrorCodes.UserAlreadyExists.value)
+        except user_model.DoesNotExist:
+            pass
+        return value
 
 
 class GetOptionsForm(forms.Form):
@@ -28,7 +27,7 @@ class GetOptionsForm(forms.Form):
         value = self.cleaned_data['username']
         user_model = get_user_model()
         try:
-            user_model.objects.get(username=value)
+            user_model.objects.get_by_natural_key(value)
         except user_model.DoesNotExist:
             raise forms.ValidationError('User does not exist.',
                                         ErrorCodes.UserNotFound.value)

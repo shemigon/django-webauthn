@@ -8,13 +8,19 @@ window.webauthn = {
     urlVerify: null,
 
     loginSuccess: function () {
-        console.log('User logged in successfully');
+      console.log('User logged in successfully');
+    },
+    signupSuccess: function () {
+      console.log('User signed up successfully');
     },
     errorCallback: function (err) {
-        console.error(err);
+      console.error(err);
     },
     userNotFoundCallback: function (msg) {
-        console.warn(msg);
+      console.warn(msg);
+    },
+    userExistsCallback: function (msg) {
+      console.warn(msg);
     },
   },
 
@@ -29,16 +35,16 @@ window.webauthn = {
 
     JSONRequest: function (route, body) {
       return new Request(route, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(body)
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
       });
     },
     FormRequest: function (route, form) {
       return new Request(route, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new FormData(form),
       });
@@ -47,10 +53,14 @@ window.webauthn = {
       const userElems = document.querySelectorAll(sel);
       if (userElems.length > 1) {
         console.warn(
-          `Found ${userElems.length} username inputs for "${sel}". Will use the first one.`
+          `Found ${userElems.length} username inputs for "${sel}". Will use the first one.`,
         );
       } else if (!userElems.length) {
-        throw `Username input cannot be found by "${sel}" selector.`
+        throw `Username input cannot be found by "${sel}" selector.`;
+      }
+      const value = userElems[0].value;
+      if (typeof value === 'undefined') {
+        throw `Cannot user ${userElems[0].tagName} as username field.`;
       }
       return userElems[0].value.trim();
     },
@@ -59,22 +69,34 @@ window.webauthn = {
       const params = window.webauthn.params;
       try {
         err = JSON.parse(err);
-      } catch (e) {}
+      } catch (e) {
+      }
 
       if (err.username) {
         err.username.forEach(function (item) {
-            if (item.code === 100) {
+          switch (item.code) {
+            case 100:
               if (params.userNotFoundCallback) {
                 params.userNotFoundCallback(item.message);
               }
-            }
-        })
+              break;
+            case 101:
+              if (params.userExistsCallback) {
+                params.userExistsCallback(item.message);
+              }
+              break;
+            default:
+              params.errorCallback(`Unknown error: ${item.message}`)
+          }
+        });
+      } else {
+        console.log(err);
       }
-    }
+    },
   },
 
   addLoginHandler: function ({usernameInputSel, buttonSel}) {
-    document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener('DOMContentLoaded', function () {
       const usernameElem = document.querySelector(usernameInputSel);
       if (!usernameElem) {
         throw `Cannot find username field ${usernameElem}`;
@@ -106,11 +128,11 @@ window.webauthn = {
       // See https://www.w3.org/TR/webauthn/#verifying-assertion
       const username = utils.getUsername(usernameInputSel);
       if (!username) {
-        return utils.error('Username cannot be blank.');
+        return params.handleError('Username cannot be blank.');
       }
       fetch(utils.JSONRequest(params.urlCredentialsGet, {username}))
         .then(function (res) {
-          return res.json()
+          return res.json();
         })
         .then(function (options) {
           if (options.errors) {
@@ -152,11 +174,87 @@ window.webauthn = {
                 });
             })
             .catch(function (err) {
-              params.errorCallback("Error in navigator.credentials.get: " + err);
+              params.handleError('Error in navigator.credentials.get: ' + err);
             });
         })
-        .catch(params.errorCallback);
+        .catch(params.handleError);
     }
+  },
+
+  addSignupHandler: function ({usernameInputSel, buttonSel}) {
+    document.addEventListener('DOMContentLoaded', function () {
+      const usernameElem = document.querySelector(usernameInputSel);
+      if (!usernameElem) {
+        throw `Cannot find username field ${usernameElem}`;
+      }
+      if (buttonSel) {
+        const elems = document.querySelectorAll(buttonSel);
+        if (!elems.length) {
+          throw `No elements found by "${buttonSel}"`;
+        }
+        elems.forEach(function (el) {
+          el.addEventListener('click', signup);
+        });
+      } else {
+        const form = usernameElem.closest('form');
+        if (!form) {
+          throw `Username field ${usernameInputSel} does not have an enclosing form.`;
+        }
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          signup();
+        });
+      }
+    });
+
+    const params = this.params;
+    const utils = this.utils;
+
+    function signup() {
+      // See https://www.w3.org/TR/webauthn/#registering-a-new-credential
+      const username = utils.getUsername(usernameInputSel);
+      if (!username) {
+        return params.handleError('Username cannot be blank.');
+      }
+      fetch(utils.JSONRequest(params.urlCredentialsCreate, {'username': username}))
+        .then(function (res) {
+          return res.json();
+        })
+        .then(function (options) {
+          if (options.errors) {
+            utils.handleError(options.errors);
+            return;
+          }
+          options.challenge = utils.base64ToArrayBuffer(options.challenge);
+          options.user.id = new TextEncoder().encode(options.user.name);
+          navigator.credentials.create({publicKey: options})
+            .then(function (newCredentialInfo) {
+              // Send new credential info to server for verification and registration
+              const dataForServer = {
+                attestation_object: utils.arrayBufferToBase64(newCredentialInfo.response.attestationObject),
+                client_data_json: utils.arrayBufferToBase64(newCredentialInfo.response.clientDataJSON),
+              };
+              dataForServer.username = btoa(username);
+              fetch(utils.JSONRequest(params.urlCredentialsRegister, dataForServer))
+                .then(function (res) {
+                  debugger;
+                  return res.blob();
+                })
+                .then(function (body) {
+                  const reader = new FileReader();
+                  reader.onload = function () {
+                    params.signupSuccess(reader.result);
+                  };
+                  reader.readAsText(body);
+                });
+            })
+            .catch(function (err) {
+              params.handleError('Error in navigator.credentials.create: ' + err);
+            });
+        })
+        .catch(params.handleError);
+    }
+
   },
 
 };

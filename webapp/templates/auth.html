@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="{% static "app.css" %}">
 
   {% webauthn_login_js "#login-form [name=username]" %}
+  {% webauthn_signup_js "#signup-form [name=username]" %}
 
 </head>
 <body>
@@ -28,7 +29,15 @@
   </form>
 </div>
 
-<div id="result"></div>
+<div>
+  <h2>Signup</h2>
+  <form id="signup-form">
+    <label>Username:
+      <input type="text" name="username" required="required">
+    </label>
+    <button type="submit">Signup</button>
+  </form>
+</div>
 
 </body>
 </html>

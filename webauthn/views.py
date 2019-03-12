@@ -1,6 +1,5 @@
 import json
 
-from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.http import JsonResponse
 from django.utils.functional import cached_property
@@ -9,8 +8,8 @@ from django.views import View
 
 from pywarp import RelyingPartyManager
 from .conf import settings
-from .forms import CreateOptionsForm, RegistrationForm, VerifyForm, \
-    GetOptionsForm
+from .forms import CreateOptionsForm, GetOptionsForm, RegistrationForm, \
+    VerifyForm
 
 
 class BaseView(View):
@@ -25,6 +24,8 @@ class BaseView(View):
             debug=True,
         )
 
+
+# signup views
 
 class CredentialCreateOptionsView(BaseView):
     def post(self, request):
@@ -64,6 +65,8 @@ class RegisterCredentialView(BaseView):
         )
         return JsonResponse(resp)
 
+
+# login views
 
 class CredentialGetOptionsView(BaseView):
     def post(self, request):
