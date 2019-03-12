@@ -1,10 +1,13 @@
 from django.contrib import admin
 from django.urls import include, path
-from django.views.generic import TemplateView
+
+from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    path('', TemplateView.as_view(template_name='auth.html')),
     path('', include('webauthn.urls')),
+    path('', views.HomeView.as_view(), name='home'),
+    path('logged-in/', views.LoggedInView.as_view(), name='logged-in'),
+    path('signed-up/', views.SignedUpView.as_view(), name='signed-up'),
 ]

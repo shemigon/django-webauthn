@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 from .errors import ErrorCodes
 from .fields import Base64Field
@@ -47,3 +48,11 @@ class VerifyForm(forms.Form):
     signature = Base64Field()
     user_handle = Base64Field()
     raw_id = forms.CharField(required=False)
+
+    def get_user(self):
+        if self.is_valid():
+            user = get_user_model().objects.get_by_natural_key(
+                self.cleaned_data['username'].decode()
+            )
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            return user

@@ -39,18 +39,18 @@ INSTALLED_APPS = [
     'webauthn',
 ]
 
-# FIXME commented to make it work
+# FIXME Enable CSRF
 MIDDLEWARE = [
-    # 'django.middleware.security.SecurityMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     # 'django.middleware.csrf.CsrfViewMiddleware',
-    # 'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # 'django.contrib.messages.middleware.MessageMiddleware',
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-SESSION_SERIALIZER = 'django.contrib.sessions.serializers.PickleSerializer'
-# ends here
+
+LOGIN_URL = 'home'
 
 ROOT_URLCONF = 'webapp.urls'
 

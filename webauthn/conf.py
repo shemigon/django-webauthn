@@ -6,7 +6,7 @@ class WebAuthnConf(AppConf):
     name = 'webauthn'
     verbose_name = 'WebAuthn'
 
-    # need to use settigns somehow to enable autoimport without flake8 complain
+    # need to use settings somehow to enable autoimport without flake8 complain
     NAME = 'WebAuthn App' + (' (debug)' if settings.DEBUG else '')
 
     HOSTNAME = 'localhost'

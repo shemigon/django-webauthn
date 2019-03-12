@@ -1,5 +1,6 @@
 import json
 
+from django.contrib.auth import login
 from django.db import IntegrityError
 from django.http import JsonResponse
 from django.utils.functional import cached_property
@@ -89,5 +90,8 @@ class VerifyAssertionView(BaseView):
             return JsonResponse({
                 'errors': form.errors.as_json()
             })
-        res = self.rp.verify(**form.cleaned_data)
-        return JsonResponse(res)
+        verified = self.rp.verify(**form.cleaned_data)
+        if verified:
+            user = form.get_user()
+            login(request, user)
+        return JsonResponse({"verified": verified})
