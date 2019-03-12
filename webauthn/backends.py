@@ -9,13 +9,16 @@ class ModelBackend(AbstractStorageBackend):
     def __init__(self):
         self.user_model = get_user_model()
 
+    def get_user(self, username):
+        return self.user_model.objects.get_by_natural_key(username).webauthn
+
     def get_credential(self, username):
-        user = self.user_model.objects.get_by_natural_key(username).webauthn
+        user = self.get_user(username)
         return Credential(credential_id=user.credential_id,
                           credential_public_key=user.credential_public_key)
 
     def save_credential(self, username, credential, **user_extra):
-        user = self.user_model.objects.get_by_natural_key(username).webauthn
+        user = self.get_user(username)
         user.credential_id = credential.id
         user.credential_public_key = bytes(credential.public_key)
         user.save()
@@ -31,12 +34,12 @@ class ModelBackend(AbstractStorageBackend):
                 registration_challenge=challenge,
             )
         else:
-            user = self.user_model.objects.get_by_natural_key(username).webauthn
+            user = self.get_user(username)
             user.authentication_challenge = challenge
             user.save()
 
     def get_challenge(self, username, challenge_type):
         assert challenge_type in {"registration", "authentication"}
 
-        user = self.user_model.objects.get_by_natural_key(username).webauthn
+        user = self.get_user(username)
         return getattr(user, challenge_type + "_challenge")
